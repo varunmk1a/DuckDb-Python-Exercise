@@ -1,70 +1,69 @@
+import duckdb
 import pandas as pd
+import requests
+import io
 
-# Replace with your actual GitHub URL and personal access token
-github_url = "https://raw.githubusercontent.com/<your_username>/<your_repo>/master/userdata1.parquet"
-personal_access_token = "<your_personal_access_token>"
+def display_data():
+    print("\nAvailable columns:")
+    print(df.columns.tolist())
+    column_name = input("Enter the column name you want to analyze: ")
+    operation = input("Enter the operation (e.g., AVG, SUM): ")
 
-# Access the file using pandas with authentication for GitHub
-headers = {"Authorization": f"token {personal_access_token}"}
-df = pd.read_parquet(github_url, headers=headers)
+    # Execute SQL query dynamically
+    query = f"SELECT {operation}({column_name}) FROM parquet_data"
+    result = con.execute(query)
 
-# Display column names
-print("--- Available columns ---")
-print(df.columns.to_list())
+    # Fetch and display the result
+    result_df = result.fetchdf()
+    print(result_df)
 
-# Get user input for operations
+def edit_data():
+    print("\nCurrent DataFrame:")
+    print(df)
+
+    column_to_modify = input("Enter the column name to modify: ")
+    new_value = input("Enter the new value: ")
+
+    # Modify the DataFrame
+    df[column_to_modify] = new_value
+
+    # Update DuckDB with the modified DataFrame
+    con.unregister('parquet_data')  # Unregister the old DataFrame
+    con.register('parquet_data', df)  # Register the modified DataFrame
+
+    print("\nModified DataFrame:")
+    print(df)
+
+# URL to your Parquet file on GitHub
+parquet_url = "https://github.com/varunmk1a/DuckDb-Python-Exercise/blob/main/userdata1.parquet"
+
+# Download the Parquet data using requests
+response = requests.get(parquet_url)
+parquet_file = io.BytesIO(response.content)
+
+# Read Parquet data with Pandas
+df = pd.read_parquet(parquet_file)
+
+# Create a DuckDB connection
+con = duckdb.connect(database=':memory:', read_only=False)
+
+# Store the Pandas DataFrame into DuckDB
+con.register('parquet_data', df)
+
 while True:
-    operation = input("Enter the operation you want to perform (e.g., sum, mean, count, etc.): ")
-    column = input("Enter the column to perform the operation on: ")
+    print("\nOptions:")
+    print("1. View Data")
+    print("2. Edit Data")
+    print("3. Exit")
 
-    # Validate user input
-    if column not in df.columns:
-        print(f"Invalid column name '{column}'. Please try again.")
-        continue
+    choice = input("Enter your choice (1/2/3): ")
 
-    try:
-        # Perform the operation
-        result = df[column].agg(operation)
-        print("Result:", result)
-        break  # Exit the loop after a valid operation
-
-    except ValueError:
-        print(f"Invalid operation '{operation}'. Please try again.")
-
-# Get user input for data modification
-modify = input("Would you like to modify the data? (y/n): ")
-if modify.lower() == "y":
-    modification_type = input("Enter modification type (modify entire row or column): ")
-    modification_type = modification_type.lower()
-
-    if modification_type == "row":
-        # Modify entire row (replace with your specific logic)
-        row_index = int(input("Enter the index of the row to modify: "))
-        if 0 <= row_index < len(df):
-            # Prompt user for new values and update the row
-            new_values = []
-            for col in df.columns:
-                new_value = input(f"Enter new value for '{col}': ")
-                new_values.append(new_value)
-            df.iloc[row_index] = new_values
-        else:
-            print(f"Invalid row index '{row_index}'.")
-    elif modification_type == "column":
-        # Modify column (replace with your specific logic)
-        column_to_modify = input("Enter the column to modify: ")
-        if column_to_modify in df.columns:
-            # Prompt user for new values and update the column
-            new_values = []
-            for i in range(len(df)):
-                new_value = input(f"Enter new value for row {i + 1} of '{column_to_modify}': ")
-                new_values.append(new_value)
-            df[column_to_modify] = new_values
-        else:
-            print(f"Invalid column name '{column_to_modify}'.")
+    if choice == '1':
+        display_data()
+    elif choice == '2':
+        edit_data()
+    elif choice == '3':
+        print("Exiting the program.")
+        break
     else:
-        print(f"Invalid modification type '{modification_type}'.")
-
-    # You cannot directly save modified data back to GitHub using pandas within the script.
-    print("Data modification complete. However, saving to GitHub is not possible within this script.")
-
-print("Exiting...")
+        print("Invalid choice. Please enter 1, 2, or 3.")
