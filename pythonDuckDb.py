@@ -1,6 +1,19 @@
+import os
+import subprocess
+import zipfile
 import duckdb
 import pandas as pd
 
+# Function to download Kaggle dataset
+def download_kaggle_dataset(dataset_name):
+    # Run the Kaggle CLI command to download the dataset
+    subprocess.run(['kaggle', 'datasets', 'download', '-d', dataset_name])
+
+    # Extract the downloaded dataset (assuming it's a zip file)
+    with zipfile.ZipFile(f"{dataset_name.split('/')[-1]}.zip", 'r') as zip_ref:
+        zip_ref.extractall()
+
+# Function to display data based on user input
 def display_data():
     print("\nAvailable columns:")
     print(df.columns.tolist())
@@ -15,6 +28,7 @@ def display_data():
     result_df = result.fetchdf()
     print(result_df)
 
+# Function to edit data based on user input
 def edit_data():
     print("\nCurrent DataFrame:")
     print(df)
@@ -32,6 +46,12 @@ def edit_data():
     print("\nModified DataFrame:")
     print(df)
 
+# Specify the Kaggle dataset name
+kaggle_dataset_name = 'cdeotte/brain-spectrograms'
+
+# Download the Kaggle dataset
+download_kaggle_dataset(kaggle_dataset_name)
+
 # Read Parquet data with Pandas
 parquet_file = input("Enter the path to your Parquet file: ")
 df = pd.read_parquet(parquet_file)
@@ -42,6 +62,7 @@ con = duckdb.connect(database=':memory:', read_only=False)
 # Store the Pandas DataFrame into DuckDB
 con.register('parquet_data', df)
 
+# Main loop to provide interactive options
 while True:
     print("\nOptions:")
     print("1. View Data")
@@ -56,6 +77,6 @@ while True:
         edit_data()
     elif choice == '3':
         print("Exiting the program.")
-        break
+        break  # This breaks out of the while loop
     else:
         print("Invalid choice. Please enter 1, 2, or 3.")
